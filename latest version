@@ -1,0 +1,54 @@
+clear; clc; close all;
+
+%% Main
+% Variable Declaration
+P_atm = 24.87; % in/Hg
+T_atm = 22; % degC
+deltaP_norm = 150; % Pa
+deltaP_total = 0; % Pa
+deltaP_static = 150; % Pa
+R = 287; % J/kg*K
+d_P = 50; % Pa
+d_T = 0.05; % degC
+d_deltaP = 49.67; % Pa
+
+% Convert To Consistent Units
+P_atm = P_atm * 3386.39; % Pa
+T_atm = T_atm + 273.15; % degK
+d_T = d_T + 273.15; % degK
+
+% Calculate Maximum Airspeed
+V_norm = airspeed(R, T_atm, P_atm, deltaP_norm);
+V_total = airspeed(R, T_atm, P_atm, deltaP_total);
+V_static = airspeed(R, T_atm, P_atm, deltaP_static);
+
+% Calculate Error
+error_Vnorm = airspeed_delta(R, T_atm, P_atm, deltaP_norm, d_T, d_P, d_deltaP);
+error_Vtotal = airspeed_delta(R, T_atm, P_atm, deltaP_total, d_T, d_P, d_deltaP);
+error_Vstatic = airspeed_delta(R, T_atm, P_atm, deltaP_static, d_T, d_P, d_deltaP);
+
+%% User Defined Functions
+function [V] = airspeed(R, t_atm, p_atm, delta_p)
+    V = sqrt(2.*delta_p.*((R*t_atm)/p_atm));
+end
+
+function [partial] = deltaP_partial(R, t_atm, p_atm, delta_p)
+    partial = ((R*p_atm)/t_atm).*(1/airspeed(R, t_atm, p_atm, delta_p));
+end
+
+function [partial] = T_atm_partial(R, t_atm, p_atm, delta_p)
+    partial = ((delta_p*R)/p_atm).*(1/airspeed(R, t_atm, p_atm, delta_p));
+end
+
+function [partial] = P_atm_partial(R, t_atm, p_atm, delta_p)
+    partial = ((-1*delta_p*R*t_atm)/(p_atm^2)).*(1/airspeed(R, t_atm, p_atm, delta_p));
+end
+
+function [delta_V] = airspeed_delta(R, t_atm, p_atm, deltaP, d_T, d_Patm, d_p)
+    P_partial = P_atm_partial(R, t_atm, p_atm, deltaP);
+    T_partial = T_atm_partial(R, t_atm, p_atm, deltaP);
+    dP_partial = deltaP_partial(R, t_atm, p_atm, deltaP);
+
+    delta_V = sqrt(((dP_partial.*d_p).^2) + ((T_partial.*d_T).^2) + ((P_partial.*d_Patm).^2));
+end
+
